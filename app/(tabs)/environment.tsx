@@ -1,16 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, Platform, Alert, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MapPin, Wind, Coffee, TreePine, Waves, Star, Navigation, Heart } from 'lucide-react-native';
+import { 
+  MapPin, 
+  Wind, 
+  Coffee, 
+  TreePine, 
+  Waves, 
+  Star, 
+  Navigation, 
+  Heart, 
+  Compass,
+  Sun,
+  Moon,
+  Cloud,
+  Droplets,
+  Zap,
+  Sparkles,
+  CheckCircle,
+  ExternalLink
+} from 'lucide-react-native';
+import { hapticFeedback } from '../../utils/haptics';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const EnvironmentScreen = () => {
-  const [selectedZone, setSelectedZone] = useState(null);
+  const [selectedZone, setSelectedZone] = useState<number | null>(null);
+  const [compassRotation, setCompassRotation] = useState(0);
+  const [savedZones, setSavedZones] = useState<number[]>([]);
+  const [optimizedZones, setOptimizedZones] = useState<number[]>([]);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  
   const [animations] = useState({
     pulse: new Animated.Value(1),
     glow: new Animated.Value(0.3),
+    compass: new Animated.Value(0),
+    background: new Animated.Value(0),
   });
 
   const calmZones = [
@@ -22,9 +48,11 @@ const EnvironmentScreen = () => {
       noiseLevel: 28,
       type: 'nature',
       description: 'Gentle flowing water creates natural white noise, perfect for morning meditation',
-      icon: <Waves size={20} color="#7dd3fc" strokeWidth={1.5} />,
+      icon: <Waves size={24} color="#7dd3fc" strokeWidth={1.5} />,
       mood: 'peaceful',
       color: '#7dd3fc',
+      gradient: ['#0ea5e9', '#0284c7'],
+      compassDirection: 45,
       image: 'https://images.pexels.com/photos/417074/pexels-photo-417074.jpeg?auto=compress&cs=tinysrgb&w=800'
     },
     {
@@ -35,9 +63,11 @@ const EnvironmentScreen = () => {
       noiseLevel: 35,
       type: 'cafe',
       description: 'Quiet corner with plants and soft ambient music, ideal for focused work',
-      icon: <Coffee size={20} color="#f59e0b" strokeWidth={1.5} />,
+      icon: <Coffee size={24} color="#f59e0b" strokeWidth={1.5} />,
       mood: 'focused',
       color: '#f59e0b',
+      gradient: ['#f59e0b', '#d97706'],
+      compassDirection: 120,
       image: 'https://images.pexels.com/photos/302899/pexels-photo-302899.jpeg?auto=compress&cs=tinysrgb&w=800'
     },
     {
@@ -48,9 +78,11 @@ const EnvironmentScreen = () => {
       noiseLevel: 22,
       type: 'forest',
       description: 'Century-old trees and pristine air quality create a natural cathedral',
-      icon: <TreePine size={20} color="#10b981" strokeWidth={1.5} />,
+      icon: <TreePine size={24} color="#10b981" strokeWidth={1.5} />,
       mood: 'grounded',
       color: '#10b981',
+      gradient: ['#10b981', '#059669'],
+      compassDirection: 180,
       image: 'https://images.pexels.com/photos/1496373/pexels-photo-1496373.jpeg?auto=compress&cs=tinysrgb&w=800'
     },
     {
@@ -61,9 +93,11 @@ const EnvironmentScreen = () => {
       noiseLevel: 25,
       type: 'viewpoint',
       description: 'Elevated sanctuary with panoramic views and clear mountain air',
-      icon: <Star size={20} color="#a78bfa" strokeWidth={1.5} />,
+      icon: <Star size={24} color="#a78bfa" strokeWidth={1.5} />,
       mood: 'inspired',
       color: '#a78bfa',
+      gradient: ['#a78bfa', '#8b5cf6'],
+      compassDirection: 270,
       image: 'https://images.pexels.com/photos/1624496/pexels-photo-1624496.jpeg?auto=compress&cs=tinysrgb&w=800'
     }
   ];
@@ -74,42 +108,52 @@ const EnvironmentScreen = () => {
     noiseLevel: 52,
     weather: 'Partly cloudy, 21°C',
     humidity: 48,
-    coordinates: '37.7749° N, 122.4194° W'
+    coordinates: '37.7749° N, 122.4194° W',
+    timeOfDay: 'afternoon'
   };
 
+  // Find best zone for compass orientation
+  const bestZone = calmZones.reduce((best, zone) => 
+    zone.airQuality > best.airQuality ? zone : best
+  );
+
   useEffect(() => {
-    // Gentle pulse animation
+    // Compass rotation animation
     Animated.loop(
-      Animated.sequence([
-        Animated.timing(animations.pulse, {
-          toValue: 1.05,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(animations.pulse, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ])
+      Animated.timing(animations.compass, {
+        toValue: 1,
+        duration: 8000,
+        useNativeDriver: true,
+      })
     ).start();
 
-    // Glow animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(animations.glow, {
-          toValue: 0.7,
-          duration: 3000,
-          useNativeDriver: false,
-        }),
-        Animated.timing(animations.glow, {
-          toValue: 0.3,
-          duration: 3000,
-          useNativeDriver: false,
-        }),
-      ])
-    ).start();
-  }, []);
+    // Background animation based on best zone
+    Animated.timing(animations.background, {
+      toValue: 1,
+      duration: 2000,
+      useNativeDriver: false,
+    }).start();
+
+    // Pulse animation for selected zone
+    if (selectedZone) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(animations.pulse, {
+            toValue: 1.05,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(animations.pulse, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      animations.pulse.setValue(1);
+    }
+  }, [selectedZone]);
 
   const getQualityColor = (value: number) => {
     if (value >= 90) return '#10b981';
@@ -132,181 +176,418 @@ const EnvironmentScreen = () => {
     return 'Loud';
   };
 
-  return (
-    <LinearGradient
-      colors={['#0f0f23', '#1a1a2e', '#16213e']}
-      style={styles.container}
-    >
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Zones</Text>
-          <Text style={styles.subtitle}>Discover your calm spaces</Text>
-        </View>
+  const getBackgroundGradient = (): [string, string, string] => {
+    if (selectedZone) {
+      const zone = calmZones.find(z => z.id === selectedZone);
+      return zone ? [zone.gradient[0], zone.gradient[1], '#16213e'] : ['#0f0f23', '#1a1a2e', '#16213e'];
+    }
+    return ['#0f0f23', '#1a1a2e', '#16213e'];
+  };
 
-        <ScrollView 
+  const compassRotationInterpolate = animations.compass.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const headerScale = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0.98],
+    extrapolate: 'clamp',
+  });
+
+  const handleNavigate = (zone: any) => {
+    hapticFeedback.light();
+    
+    // Open in default maps app
+    const url = `https://maps.google.com/?q=${zone.name}`;
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        Alert.alert(
+          'Navigation',
+          `Navigate to ${zone.name}?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Maps', onPress: () => Linking.openURL(url) }
+          ]
+        );
+      }
+    });
+  };
+
+  const handleSaveZone = (zoneId: number) => {
+    hapticFeedback.success();
+    
+    if (savedZones.includes(zoneId)) {
+      setSavedZones(savedZones.filter(id => id !== zoneId));
+      Alert.alert('Zone Removed', 'Zone removed from your saved locations');
+    } else {
+      setSavedZones([...savedZones, zoneId]);
+      Alert.alert('Zone Saved', 'Zone added to your saved locations');
+    }
+  };
+
+  const handleOptimizeZone = (zone: any) => {
+    hapticFeedback.medium();
+    
+    Alert.alert(
+      'Optimize Environment',
+      `Optimize your experience at ${zone.name}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Optimize', 
+          onPress: () => {
+            setOptimizedZones([...optimizedZones, zone.id]);
+            Alert.alert(
+              'Optimization Complete',
+              `Your environment at ${zone.name} has been optimized for maximum wellness benefits.`,
+              [{ text: 'OK' }]
+            );
+          }
+        }
+      ]
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <Animated.View 
+        style={styles.backgroundGradient}
+      >
+        <LinearGradient
+          colors={getBackgroundGradient()}
+          style={styles.gradientBackground}
+        />
+      </Animated.View>
+
+      <SafeAreaView style={styles.safeArea}>
+        {/* Header with Compass */}
+        <Animated.View 
+          style={[
+            styles.header,
+            { transform: [{ scale: headerScale }] }
+          ]}
+        >
+          <View style={styles.compassContainer}>
+            <Animated.View
+              style={[
+                styles.compassRing,
+                {
+                  transform: [{ rotate: compassRotationInterpolate }]
+                }
+              ]}
+            >
+              <Compass size={32} color="#7dd3fc" strokeWidth={1.5} />
+            </Animated.View>
+            <View style={styles.compassGlow} />
+          </View>
+          
+          <Text style={styles.title}>Atmos Compass</Text>
+          <Text style={styles.subtitle}>Your symbiotic environmental guide</Text>
+          
+          <View style={styles.compassIndicator}>
+            <Text style={styles.compassText}>
+              Best zone: {bestZone.name} ({bestZone.compassDirection}°)
+            </Text>
+          </View>
+        </Animated.View>
+
+        <Animated.ScrollView 
           style={styles.scrollView} 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          scrollEventThrottle={16}
         >
-          {/* Current Location */}
-          <Animated.View 
-            style={[
-              styles.currentLocationCard,
-              { transform: [{ scale: animations.pulse }] }
-            ]}
-          >
-            <View style={styles.locationHeader}>
-              <MapPin size={18} color="#7dd3fc" strokeWidth={1.5} />
-              <Text style={styles.locationTitle}>{currentLocation.name}</Text>
-            </View>
-            
-            <View style={styles.locationMetrics}>
-              <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Air Quality</Text>
-                <Text style={[styles.metricValue, { color: getQualityColor(currentLocation.airQuality) }]}>
-                  {currentLocation.airQuality}
-                </Text>
-                <Text style={styles.metricStatus}>
-                  {getQualityLabel(currentLocation.airQuality)}
-                </Text>
+          {/* Current Location Card */}
+          <View style={styles.currentLocationCard}>
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.12)', 'rgba(255, 255, 255, 0.06)']}
+              style={styles.locationGradient}
+            >
+                             <View style={styles.locationHeader}>
+                 <View style={styles.locationIconContainer}>
+                   <MapPin size={18} color="#7dd3fc" strokeWidth={1.5} />
+                   <View style={styles.locationGlow} />
+                 </View>
+                 <View style={styles.locationInfo}>
+                   <Text style={styles.locationTitle}>{currentLocation.name}</Text>
+                   <Text style={styles.locationSubtitle}>Current Position</Text>
+                 </View>
+               </View>
+              
+              <View style={styles.locationMetrics}>
+                <View style={styles.metricCard}>
+                  <View style={styles.metricIcon}>
+                    <Wind size={16} color={getQualityColor(currentLocation.airQuality)} strokeWidth={1.5} />
+                  </View>
+                  <Text style={styles.metricValue}>
+                    {currentLocation.airQuality}
+                  </Text>
+                  <Text style={styles.metricLabel}>Air Quality</Text>
+                  <Text style={[styles.metricStatus, { color: getQualityColor(currentLocation.airQuality) }]}>
+                    {getQualityLabel(currentLocation.airQuality)}
+                  </Text>
+                </View>
+                
+                <View style={styles.metricCard}>
+                  <View style={styles.metricIcon}>
+                    <Droplets size={16} color={getQualityColor(100 - currentLocation.noiseLevel)} strokeWidth={1.5} />
+                  </View>
+                  <Text style={styles.metricValue}>
+                    {currentLocation.noiseLevel}dB
+                  </Text>
+                  <Text style={styles.metricLabel}>Noise Level</Text>
+                  <Text style={[styles.metricStatus, { color: getQualityColor(100 - currentLocation.noiseLevel) }]}>
+                    {getNoiseLabel(currentLocation.noiseLevel)}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Noise Level</Text>
-                <Text style={[styles.metricValue, { color: getQualityColor(100 - currentLocation.noiseLevel) }]}>
-                  {currentLocation.noiseLevel}dB
-                </Text>
-                <Text style={styles.metricStatus}>
-                  {getNoiseLabel(currentLocation.noiseLevel)}
-                </Text>
+              
+              <View style={styles.locationFooter}>
+                <Text style={styles.weatherText}>{currentLocation.weather}</Text>
+                <Text style={styles.coordinatesText}>{currentLocation.coordinates}</Text>
               </View>
-            </View>
-            
-            <Text style={styles.weatherText}>{currentLocation.weather}</Text>
-            <Text style={styles.coordinatesText}>{currentLocation.coordinates}</Text>
-          </Animated.View>
+            </LinearGradient>
+          </View>
 
           {/* Traveler Mode Banner */}
           <View style={styles.travelerBanner}>
-            <View style={styles.travelerIcon}>
-              <Navigation size={16} color="#10b981" strokeWidth={1.5} />
-            </View>
-            <Text style={styles.travelerText}>
-              Traveler Mode: Syncing with your environment
-            </Text>
+            <LinearGradient
+              colors={['rgba(16, 185, 129, 0.15)', 'rgba(16, 185, 129, 0.05)']}
+              style={styles.travelerGradient}
+            >
+              <View style={styles.travelerIcon}>
+                <Navigation size={18} color="#10b981" strokeWidth={1.5} />
+                <Sparkles size={12} color="#10b981" strokeWidth={1.5} style={styles.sparkleIcon} />
+              </View>
+              <Text style={styles.travelerText}>
+                Symbiotic Mode: Adapting to your environment
+              </Text>
+            </LinearGradient>
           </View>
 
           {/* Calm Zones */}
           <View style={styles.zonesContainer}>
-            <Text style={styles.zonesTitle}>Nearby Calm Zones</Text>
+            <Text style={styles.zonesTitle}>Nearby Sanctuaries</Text>
             
-            {calmZones.map((zone) => (
+            {calmZones.map((zone, index) => (
               <TouchableOpacity
                 key={zone.id}
-                style={[
-                  styles.zoneCard,
-                  selectedZone === zone.id && styles.zoneCardSelected
-                ]}
-                onPress={() => setSelectedZone(selectedZone === zone.id ? null : zone.id)}
+                style={styles.zoneCardContainer}
+                onPress={() => {
+              hapticFeedback.light();
+              setSelectedZone(selectedZone === zone.id ? null : zone.id);
+            }}
                 activeOpacity={0.9}
               >
                 <Animated.View
                   style={[
-                    styles.zoneGlow,
+                    styles.zoneCard,
+                    selectedZone === zone.id && styles.zoneCardSelected,
                     {
-                      opacity: selectedZone === zone.id ? animations.glow : 0,
-                      shadowColor: zone.color,
+                      transform: selectedZone === zone.id ? [{ scale: animations.pulse }] : [{ scale: 1 }]
                     }
                   ]}
-                />
-                
-                <View style={styles.zoneHeader}>
-                  <View style={[styles.zoneIcon, { backgroundColor: `${zone.color}20` }]}>
-                    {zone.icon}
-                  </View>
-                  <View style={styles.zoneInfo}>
-                    <Text style={styles.zoneName}>{zone.name}</Text>
-                    <Text style={styles.zoneDistance}>{zone.distance} away</Text>
-                  </View>
-                  <View style={styles.zoneMetrics}>
-                    <View style={styles.miniMetric}>
-                      <Wind size={10} color={getQualityColor(zone.airQuality)} strokeWidth={1.5} />
-                      <Text style={[styles.miniMetricText, { color: getQualityColor(zone.airQuality) }]}>
-                        {zone.airQuality}
-                      </Text>
+                >
+                  <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.08)', 'rgba(255, 255, 255, 0.04)']}
+                    style={styles.zoneGradient}
+                  >
+                    {/* Zone Glow Effect */}
+                    {selectedZone === zone.id && (
+                      <Animated.View
+                        style={[
+                          styles.zoneGlow,
+                          {
+                            backgroundColor: zone.color,
+                            opacity: animations.glow
+                          }
+                        ]}
+                      />
+                    )}
+                    
+                    <View style={styles.zoneHeader}>
+                      <View style={[styles.zoneIcon, { backgroundColor: `${zone.color}20` }]}>
+                        {zone.icon}
+                        {selectedZone === zone.id && (
+                          <Animated.View
+                            style={[
+                              styles.iconGlow,
+                              { backgroundColor: zone.color }
+                            ]}
+                          />
+                        )}
+                      </View>
+                      
+                      <View style={styles.zoneInfo}>
+                        <Text style={styles.zoneName}>{zone.name}</Text>
+                        <Text style={styles.zoneDistance}>{zone.distance} away</Text>
+                        <Text style={styles.zoneMood}>{zone.mood}</Text>
+                      </View>
+                      
+                      <View style={styles.zoneMetrics}>
+                        <View style={styles.miniMetric}>
+                          <Wind size={12} color={getQualityColor(zone.airQuality)} strokeWidth={1.5} />
+                          <Text style={[styles.miniMetricText, { color: getQualityColor(zone.airQuality) }]}>
+                            {zone.airQuality}
+                          </Text>
+                        </View>
+                        <View style={styles.miniMetric}>
+                          <Droplets size={12} color={getQualityColor(100 - zone.noiseLevel)} strokeWidth={1.5} />
+                          <Text style={[styles.miniMetricText, { color: getQualityColor(100 - zone.noiseLevel) }]}>
+                            {zone.noiseLevel}dB
+                          </Text>
+                        </View>
+                      </View>
                     </View>
-                    <View style={styles.miniMetric}>
-                      <Text style={[styles.miniMetricText, { color: getQualityColor(100 - zone.noiseLevel) }]}>
-                        {zone.noiseLevel}dB
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                
-                <Text style={styles.zoneDescription}>{zone.description}</Text>
-                
-                {selectedZone === zone.id && (
-                  <View style={styles.zoneDetails}>
-                    <View style={styles.zoneActions}>
-                      <TouchableOpacity style={[styles.actionButton, { borderColor: zone.color }]}>
-                        <Navigation size={12} color={zone.color} strokeWidth={1.5} />
-                        <Text style={[styles.actionButtonText, { color: zone.color }]}>Navigate</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={[styles.actionButton, { borderColor: zone.color }]}>
-                        <Heart size={12} color={zone.color} strokeWidth={1.5} />
-                        <Text style={[styles.actionButtonText, { color: zone.color }]}>Save</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
+                    
+                    <Text style={styles.zoneDescription}>{zone.description}</Text>
+                    
+                    {selectedZone === zone.id && (
+                      <Animated.View 
+                        style={styles.zoneDetails}
+                      >
+                        <View style={styles.zoneActions}>
+                          <TouchableOpacity 
+                            style={[styles.actionButton, { borderColor: zone.color }]}
+                            onPress={() => handleNavigate(zone)}
+                            activeOpacity={0.8}
+                          >
+                            <Navigation size={14} color={zone.color} strokeWidth={1.5} />
+                            <Text style={[styles.actionButtonText, { color: zone.color }]}>Navigate</Text>
+                          </TouchableOpacity>
+                          
+                          <TouchableOpacity 
+                            style={[
+                              styles.actionButton, 
+                              { 
+                                borderColor: zone.color,
+                                backgroundColor: savedZones.includes(zone.id) ? zone.color + '20' : 'transparent'
+                              }
+                            ]}
+                            onPress={() => handleSaveZone(zone.id)}
+                            activeOpacity={0.8}
+                          >
+                            <Heart 
+                              size={14} 
+                              color={zone.color} 
+                              strokeWidth={1.5}
+                              fill={savedZones.includes(zone.id) ? zone.color : 'none'}
+                            />
+                            <Text style={[styles.actionButtonText, { color: zone.color }]}>
+                              {savedZones.includes(zone.id) ? 'Saved' : 'Save'}
+                            </Text>
+                          </TouchableOpacity>
+                          
+                          <TouchableOpacity 
+                            style={[
+                              styles.actionButton, 
+                              { 
+                                borderColor: zone.color,
+                                backgroundColor: optimizedZones.includes(zone.id) ? zone.color + '20' : 'transparent'
+                              }
+                            ]}
+                            onPress={() => {
+                              hapticFeedback.light();
+                              handleOptimizeZone(zone);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <Zap 
+                              size={14} 
+                              color={zone.color} 
+                              strokeWidth={1.5}
+                              fill={optimizedZones.includes(zone.id) ? zone.color : 'none'}
+                            />
+                            <Text style={[styles.actionButtonText, { color: zone.color }]}>
+                              {optimizedZones.includes(zone.id) ? 'Optimized' : 'Optimize'}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </Animated.View>
+                    )}
+                  </LinearGradient>
+                </Animated.View>
               </TouchableOpacity>
             ))}
           </View>
 
           {/* Environment Insights */}
           <View style={styles.insightsContainer}>
-            <Text style={styles.insightsTitle}>Environment Insights</Text>
+            <Text style={styles.insightsTitle}>Symbiotic Insights</Text>
             
             <View style={styles.insightCard}>
-              <View style={styles.insightIcon}>
-                <Wind size={16} color="#10b981" strokeWidth={1.5} />
-              </View>
-              <View style={styles.insightContent}>
-                <Text style={styles.insightText}>
-                  Air quality improves significantly after 3 PM today. Perfect timing for outdoor mindfulness.
-                </Text>
-              </View>
+              <LinearGradient
+                colors={['rgba(16, 185, 129, 0.1)', 'rgba(16, 185, 129, 0.05)']}
+                style={styles.insightGradient}
+              >
+                <View style={styles.insightIcon}>
+                  <Wind size={18} color="#10b981" strokeWidth={1.5} />
+                </View>
+                <View style={styles.insightContent}>
+                  <Text style={styles.insightText}>
+                    Air quality improves significantly after 3 PM today. Perfect timing for outdoor mindfulness.
+                  </Text>
+                </View>
+              </LinearGradient>
             </View>
             
             <View style={styles.insightCard}>
-              <View style={styles.insightIcon}>
-                <Waves size={16} color="#7dd3fc" strokeWidth={1.5} />
-              </View>
-              <View style={styles.insightContent}>
-                <Text style={styles.insightText}>
-                  Riverside Sanctuary has the most consistent calm conditions throughout the day.
-                </Text>
-              </View>
+              <LinearGradient
+                colors={['rgba(125, 211, 252, 0.1)', 'rgba(125, 211, 252, 0.05)']}
+                style={styles.insightGradient}
+              >
+                <View style={styles.insightIcon}>
+                  <Waves size={18} color="#7dd3fc" strokeWidth={1.5} />
+                </View>
+                <View style={styles.insightContent}>
+                  <Text style={styles.insightText}>
+                    Riverside Sanctuary has the most consistent calm conditions throughout the day.
+                  </Text>
+                </View>
+              </LinearGradient>
             </View>
 
             <View style={styles.insightCard}>
-              <View style={styles.insightIcon}>
-                <Star size={16} color="#a78bfa" strokeWidth={1.5} />
-              </View>
-              <View style={styles.insightContent}>
-                <Text style={styles.insightText}>
-                  Golden hour at Sunset Vista begins at 6:47 PM - ideal for reflection.
-                </Text>
-              </View>
+              <LinearGradient
+                colors={['rgba(167, 139, 250, 0.1)', 'rgba(167, 139, 250, 0.05)']}
+                style={styles.insightGradient}
+              >
+                <View style={styles.insightIcon}>
+                  <Star size={18} color="#a78bfa" strokeWidth={1.5} />
+                </View>
+                <View style={styles.insightContent}>
+                  <Text style={styles.insightText}>
+                    Golden hour at Sunset Vista begins at 6:47 PM - ideal for reflection.
+                  </Text>
+                </View>
+              </LinearGradient>
             </View>
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  gradientBackground: {
     flex: 1,
   },
   safeArea: {
@@ -315,14 +596,37 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
-    marginBottom: 30,
+    paddingTop: Platform.OS === 'ios' ? 44 : 20,
+    marginBottom: Platform.OS === 'ios' ? 20 : 30,
+  },
+  compassContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  compassRing: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(125, 211, 252, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(125, 211, 252, 0.3)',
+  },
+  compassGlow: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(125, 211, 252, 0.1)',
+    top: -10,
+    left: -10,
   },
   title: {
-    fontSize: 32,
+    fontSize: Platform.OS === 'ios' ? 28 : 32,
     fontFamily: 'Inter-Light',
     color: '#ffffff',
-    marginBottom: 8,
+    marginBottom: Platform.OS === 'ios' ? 6 : 8,
     letterSpacing: -0.8,
   },
   subtitle: {
@@ -330,67 +634,138 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: 'rgba(255, 255, 255, 0.6)',
     letterSpacing: 0.2,
+    marginBottom: 12,
+  },
+  compassIndicator: {
+    backgroundColor: 'rgba(125, 211, 252, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(125, 211, 252, 0.2)',
+  },
+  compassText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#7dd3fc',
+    letterSpacing: 0.2,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 120,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 120,
   },
   currentLocationCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    padding: 24,
-    borderRadius: 20,
-    marginBottom: 20,
+    marginBottom: Platform.OS === 'ios' ? 20 : 24,
+    borderRadius: Platform.OS === 'ios' ? 20 : 24,
+    overflow: 'hidden',
+  },
+  locationGradient: {
+    padding: Platform.OS === 'ios' ? 20 : 24,
+    borderRadius: Platform.OS === 'ios' ? 20 : 24,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   locationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: Platform.OS === 'ios' ? 16 : 20,
+    paddingVertical: 4,
+  },
+  locationIconContainer: {
+    position: 'relative',
+    marginRight: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(125, 211, 252, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(125, 211, 252, 0.3)',
+  },
+  locationGlow: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(125, 211, 252, 0.1)',
+    top: -8,
+    left: -8,
+  },
+  locationInfo: {
+    flex: 1,
+    justifyContent: 'center',
   },
   locationTitle: {
     fontSize: 18,
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Inter-SemiBold',
     color: '#ffffff',
-    marginLeft: 8,
+    marginBottom: 3,
     letterSpacing: -0.2,
+    lineHeight: 22,
+  },
+  locationSubtitle: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: 'rgba(255, 255, 255, 0.6)',
+    letterSpacing: 0.2,
+    lineHeight: 16,
+  },
+  weatherIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   locationMetrics: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 16,
+    marginBottom: Platform.OS === 'ios' ? 16 : 20,
   },
-  metric: {
+  metricCard: {
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: Platform.OS === 'ios' ? 14 : 16,
+    borderRadius: Platform.OS === 'ios' ? 14 : 16,
+    minWidth: Platform.OS === 'ios' ? 90 : 100,
   },
-  metricLabel: {
-    fontSize: 11,
-    fontFamily: 'Inter-Medium',
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginBottom: 6,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
+  metricIcon: {
+    marginBottom: 8,
   },
   metricValue: {
-    fontSize: 28,
+    fontSize: Platform.OS === 'ios' ? 22 : 24,
     fontFamily: 'Inter-Bold',
+    color: '#ffffff',
     marginBottom: 4,
     letterSpacing: -0.5,
   },
-  metricStatus: {
-    fontSize: 12,
+  metricLabel: {
+    fontSize: 10,
     fontFamily: 'Inter-Medium',
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 4,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  metricStatus: {
+    fontSize: 11,
+    fontFamily: 'Inter-Medium',
     letterSpacing: 0.2,
+  },
+  locationFooter: {
+    alignItems: 'center',
   },
   weatherText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
     marginBottom: 4,
     letterSpacing: 0.1,
   },
@@ -398,91 +773,119 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: 'Inter-Regular',
     color: 'rgba(255, 255, 255, 0.5)',
-    textAlign: 'center',
     letterSpacing: 0.2,
   },
   travelerBanner: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
-    marginBottom: 30,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
+    marginBottom: Platform.OS === 'ios' ? 24 : 32,
+    borderRadius: Platform.OS === 'ios' ? 16 : 20,
+    overflow: 'hidden',
+  },
+  travelerGradient: {
+    paddingHorizontal: Platform.OS === 'ios' ? 16 : 20,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 16,
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
   },
   travelerIcon: {
-    marginRight: 10,
+    position: 'relative',
+    marginRight: 12,
+  },
+  sparkleIcon: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
   },
   travelerText: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#10b981',
     letterSpacing: 0.1,
+    flex: 1,
   },
   zonesContainer: {
-    marginBottom: 40,
+    marginBottom: Platform.OS === 'ios' ? 32 : 40,
   },
   zonesTitle: {
-    fontSize: 20,
+    fontSize: Platform.OS === 'ios' ? 20 : 22,
     fontFamily: 'Inter-SemiBold',
     color: '#ffffff',
-    marginBottom: 20,
+    marginBottom: Platform.OS === 'ios' ? 20 : 24,
     letterSpacing: -0.3,
   },
-  zoneCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    padding: 20,
-    borderRadius: 18,
+  zoneCardContainer: {
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    position: 'relative',
+  },
+  zoneCard: {
+    borderRadius: Platform.OS === 'ios' ? 16 : 20,
     overflow: 'hidden',
+    position: 'relative',
   },
   zoneCardSelected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    transform: [{ scale: 1.02 }],
+  },
+  zoneGradient: {
+    padding: Platform.OS === 'ios' ? 16 : 20,
+    borderRadius: Platform.OS === 'ios' ? 16 : 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    position: 'relative',
   },
   zoneGlow: {
     position: 'absolute',
     width: '120%',
     height: '120%',
-    borderRadius: 22,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 15,
-    elevation: 10,
+    borderRadius: 24,
+    top: -10,
+    left: -10,
   },
   zoneHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Platform.OS === 'ios' ? 12 : 16,
   },
   zoneIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: Platform.OS === 'ios' ? 44 : 48,
+    height: Platform.OS === 'ios' ? 44 : 48,
+    borderRadius: Platform.OS === 'ios' ? 22 : 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: Platform.OS === 'ios' ? 12 : 16,
+    position: 'relative',
+  },
+  iconGlow: {
+    position: 'absolute',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    opacity: 0.3,
+    top: -4,
+    left: -4,
   },
   zoneInfo: {
     flex: 1,
   },
   zoneName: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
+    fontSize: Platform.OS === 'ios' ? 16 : 18,
+    fontFamily: 'Inter-SemiBold',
     color: '#ffffff',
-    marginBottom: 2,
+    marginBottom: 4,
     letterSpacing: -0.2,
   },
   zoneDistance: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: 'Inter-Regular',
     color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 2,
     letterSpacing: 0.1,
+  },
+  zoneMood: {
+    fontSize: 11,
+    fontFamily: 'Inter-Medium',
+    color: 'rgba(255, 255, 255, 0.8)',
+    textTransform: 'capitalize',
+    letterSpacing: 0.2,
   },
   zoneMetrics: {
     alignItems: 'flex-end',
@@ -490,7 +893,11 @@ const styles = StyleSheet.create({
   miniMetric: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   miniMetricText: {
     fontSize: 11,
@@ -499,17 +906,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   zoneDescription: {
-    fontSize: 13,
+    fontSize: Platform.OS === 'ios' ? 13 : 14,
     fontFamily: 'Inter-Regular',
     color: 'rgba(255, 255, 255, 0.8)',
-    lineHeight: 20,
+    lineHeight: Platform.OS === 'ios' ? 20 : 22,
     letterSpacing: 0.1,
   },
   zoneDetails: {
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: Platform.OS === 'ios' ? 16 : 20,
+    paddingTop: Platform.OS === 'ios' ? 16 : 20,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   zoneActions: {
     flexDirection: 'row',
@@ -519,10 +926,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 16,
+    paddingHorizontal: Platform.OS === 'ios' ? 14 : 16,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 12,
+    borderRadius: Platform.OS === 'ios' ? 14 : 16,
     borderWidth: 1,
+    minWidth: Platform.OS === 'ios' ? 70 : 80,
+    justifyContent: 'center',
   },
   actionButtonText: {
     fontSize: 12,
@@ -531,37 +940,40 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   insightsContainer: {
-    marginBottom: 40,
+    marginBottom: Platform.OS === 'ios' ? 32 : 40,
   },
   insightsTitle: {
-    fontSize: 20,
+    fontSize: Platform.OS === 'ios' ? 20 : 22,
     fontFamily: 'Inter-SemiBold',
     color: '#ffffff',
-    marginBottom: 20,
+    marginBottom: Platform.OS === 'ios' ? 20 : 24,
     letterSpacing: -0.3,
   },
   insightCard: {
+    marginBottom: Platform.OS === 'ios' ? 12 : 16,
+    borderRadius: Platform.OS === 'ios' ? 16 : 18,
+    overflow: 'hidden',
+  },
+  insightGradient: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
+    padding: Platform.OS === 'ios' ? 16 : 20,
+    borderRadius: Platform.OS === 'ios' ? 16 : 18,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   insightIcon: {
-    marginRight: 12,
+    marginRight: 16,
     marginTop: 2,
   },
   insightContent: {
     flex: 1,
   },
   insightText: {
-    fontSize: 13,
+    fontSize: Platform.OS === 'ios' ? 13 : 14,
     fontFamily: 'Inter-Regular',
-    color: 'rgba(255, 255, 255, 0.85)',
-    lineHeight: 20,
+    color: 'rgba(255, 255, 255, 0.9)',
+    lineHeight: Platform.OS === 'ios' ? 20 : 22,
     letterSpacing: 0.1,
   },
 });

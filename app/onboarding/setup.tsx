@@ -1,165 +1,277 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Zap, MessageCircle, Smartphone, Globe, Sun, Moon } from 'lucide-react-native';
+import { MessageCircle, Zap, Smartphone, Sun, Moon, Activity, Heart, Brain } from 'lucide-react-native';
+import { useOnboarding } from '../../hooks/useOnboarding';
 
 const SetupScreen = () => {
+  const { completeOnboarding } = useOnboarding();
   const [preferences, setPreferences] = useState({
     nudgeStyle: 'voice',
-    travelerMode: false,
-    rhythmPreference: 'morning'
+    rhythmPreference: 'morning',
+    globalConsciousness: true
   });
+
+  const [animations] = useState({
+    fade: new Animated.Value(0),
+    slide: new Animated.Value(50),
+    sync: new Animated.Value(0),
+    orb1: new Animated.Value(0),
+    orb2: new Animated.Value(0)
+  });
+
+  useEffect(() => {
+    // Fade in animation
+    Animated.timing(animations.fade, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+
+    // Slide up animation
+    Animated.timing(animations.slide, {
+      toValue: 0,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+
+    // Orb synchronization animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(animations.orb1, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(animations.orb2, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(animations.orb1, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(animations.orb2, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
+    ).start();
+
+    // Sync pulse animation
+    Animated.loop(
+      Animated.timing(animations.sync, {
+        toValue: 1,
+        duration: 3000,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
 
   const nudgeStyles = [
     {
       key: 'voice',
-      title: 'Voice-First',
-      description: 'Gentle spoken guidance',
-      icon: <MessageCircle size={24} color="#ffffff" strokeWidth={1.5} />
+      title: 'Voice Intelligence',
+      description: 'Your AI speaks wisdom directly to you',
+      icon: <MessageCircle size={24} color="#ffffff" strokeWidth={1.5} />,
+      color: '#4ade80',
     },
     {
       key: 'haptic',
-      title: 'Haptic Pulse',
-      description: 'Subtle vibrations and LED',
-      icon: <Zap size={24} color="#ffffff" strokeWidth={1.5} />
+      title: 'Tactile Awareness',
+      description: 'Gentle pulses with intelligent guidance',
+      icon: <Zap size={24} color="#ffffff" strokeWidth={1.5} />,
+      color: '#60a5fa',
     },
     {
       key: 'app',
-      title: 'App Alerts',
-      description: 'Visual notifications only',
-      icon: <Smartphone size={24} color="#ffffff" strokeWidth={1.5} />
+      title: 'Visual Intelligence',
+      description: 'Elegant visualizations and insights',
+      icon: <Smartphone size={24} color="#ffffff" strokeWidth={1.5} />,
+      color: '#a855f7',
     }
   ];
 
   const rhythmPreferences = [
     {
       key: 'morning',
-      title: 'Morning Person',
-      description: 'Peak energy before noon',
-      icon: <Sun size={24} color="#ffffff" strokeWidth={1.5} />
+      title: 'Morning Energy',
+      description: 'Peak with your early vitality',
+      icon: <Sun size={24} color="#ffffff" strokeWidth={1.5} />,
+      color: '#f59e0b',
     },
     {
       key: 'evening',
-      title: 'Night Owl',
-      description: 'Come alive after sunset',
-      icon: <Moon size={24} color="#ffffff" strokeWidth={1.5} />
+      title: 'Evening Flow',
+      description: 'Align with your night rhythms',
+      icon: <Moon size={24} color="#ffffff" strokeWidth={1.5} />,
+      color: '#8b5cf6',
+    },
+    {
+      key: 'balanced',
+      title: 'Balanced Harmony',
+      description: 'Adapt throughout your day',
+      icon: <Activity size={24} color="#ffffff" strokeWidth={1.5} />,
+      color: '#10b981',
     }
   ];
 
-  const handlePreferenceChange = (key: string, value: any) => {
+  const handlePreferenceChange = (type: string, value: string) => {
     setPreferences(prev => ({
       ...prev,
-      [key]: value
+      [type]: value
     }));
   };
 
   const handleFinish = () => {
+    completeOnboarding();
     router.replace('/(tabs)');
   };
 
+  const syncScale = animations.sync.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.1]
+  });
+
+  const orb1Scale = animations.orb1.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.2]
+  });
+
+  const orb2Scale = animations.orb2.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.2]
+  });
+
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f3460']}
+      colors={['#0f0f23', '#1a1a2e', '#16213e'] as const}
       style={styles.container}
     >
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Teach Atmos Your Rhythm</Text>
-          <Text style={styles.subtitle}>
-            Help us understand how you like to receive guidance and when you're most in flow.
-          </Text>
-        </View>
+      <Animated.View 
+        style={[
+          styles.content,
+          { 
+            opacity: animations.fade,
+            transform: [{ translateY: animations.slide }]
+          }
+        ]}
+      >
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Teach Your AI Companion</Text>
+            <Text style={styles.subtitle}>
+              Help your AI understand your preferences and create a symbiotic connection
+            </Text>
+          </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>How should Atmos nudge you?</Text>
-          {nudgeStyles.map((style) => (
-            <TouchableOpacity
-              key={style.key}
-              style={[
-                styles.optionItem,
-                preferences.nudgeStyle === style.key && styles.optionItemActive
-              ]}
-              onPress={() => handlePreferenceChange('nudgeStyle', style.key)}
-            >
-              <View style={styles.optionIcon}>
-                {style.icon}
-              </View>
-              <View style={styles.optionText}>
-                <Text style={styles.optionTitle}>{style.title}</Text>
-                <Text style={styles.optionDescription}>{style.description}</Text>
-              </View>
-              <View style={[
-                styles.radio,
-                preferences.nudgeStyle === style.key && styles.radioActive
-              ]}>
-                {preferences.nudgeStyle === style.key && <View style={styles.radioDot} />}
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+          {/* Nudge Style Selection */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>How should your AI guide you?</Text>
+            <View style={styles.optionsGrid}>
+              {nudgeStyles.map((option) => (
+                <TouchableOpacity
+                  key={option.key}
+                  style={[
+                    styles.optionCard,
+                    preferences.nudgeStyle === option.key && [
+                      styles.optionCardActive,
+                      { borderColor: option.color }
+                    ]
+                  ]}
+                  onPress={() => handlePreferenceChange('nudgeStyle', option.key)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.optionIcon, { backgroundColor: option.color }]}>
+                    {option.icon}
+                  </View>
+                  <Text style={styles.optionTitle}>{option.title}</Text>
+                  <Text style={styles.optionDescription}>{option.description}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>When do you feel most alive?</Text>
-          {rhythmPreferences.map((rhythm) => (
-            <TouchableOpacity
-              key={rhythm.key}
-              style={[
-                styles.optionItem,
-                preferences.rhythmPreference === rhythm.key && styles.optionItemActive
-              ]}
-              onPress={() => handlePreferenceChange('rhythmPreference', rhythm.key)}
-            >
-              <View style={styles.optionIcon}>
-                {rhythm.icon}
-              </View>
-              <View style={styles.optionText}>
-                <Text style={styles.optionTitle}>{rhythm.title}</Text>
-                <Text style={styles.optionDescription}>{rhythm.description}</Text>
-              </View>
-              <View style={[
-                styles.radio,
-                preferences.rhythmPreference === rhythm.key && styles.radioActive
-              ]}>
-                {preferences.rhythmPreference === rhythm.key && <View style={styles.radioDot} />}
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+          {/* Rhythm Preference */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>When does your consciousness peak?</Text>
+            <View style={styles.optionsGrid}>
+              {rhythmPreferences.map((option) => (
+                <TouchableOpacity
+                  key={option.key}
+                  style={[
+                    styles.optionCard,
+                    preferences.rhythmPreference === option.key && [
+                      styles.optionCardActive,
+                      { borderColor: option.color }
+                    ]
+                  ]}
+                  onPress={() => handlePreferenceChange('rhythmPreference', option.key)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.optionIcon, { backgroundColor: option.color }]}>
+                    {option.icon}
+                  </View>
+                  <Text style={styles.optionTitle}>{option.title}</Text>
+                  <Text style={styles.optionDescription}>{option.description}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
-        <View style={styles.section}>
-          <TouchableOpacity
-            style={[
-              styles.toggleItem,
-              preferences.travelerMode && styles.toggleItemActive
-            ]}
-            onPress={() => handlePreferenceChange('travelerMode', !preferences.travelerMode)}
+          {/* Symbiotic Connection Visualization */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Symbiotic Connection</Text>
+            <View style={styles.connectionVisual}>
+              <Animated.View 
+                style={[
+                  styles.userOrb,
+                  { transform: [{ scale: orb1Scale }] }
+                ]}
+              >
+                <Heart size={24} color="#ffffff" strokeWidth={1.5} />
+              </Animated.View>
+              
+              <Animated.View 
+                style={[
+                  styles.connectionLine,
+                  { transform: [{ scale: syncScale }] }
+                ]}
+              />
+              
+              <Animated.View 
+                style={[
+                  styles.aiOrb,
+                  { transform: [{ scale: orb2Scale }] }
+                ]}
+              >
+                <Brain size={24} color="#ffffff" strokeWidth={1.5} />
+              </Animated.View>
+            </View>
+            <Text style={styles.connectionText}>
+              Your AI is learning to sync with your rhythms and consciousness
+            </Text>
+          </View>
+
+          {/* CTA Button */}
+          <TouchableOpacity 
+            style={styles.ctaButton} 
+            onPress={handleFinish}
+            activeOpacity={0.8}
           >
-            <View style={styles.toggleIcon}>
-              <Globe size={24} color="#ffffff" strokeWidth={1.5} />
-            </View>
-            <View style={styles.toggleText}>
-              <Text style={styles.toggleTitle}>Traveler Mode</Text>
-              <Text style={styles.toggleDescription}>
-                Sync rhythm across time zones and discover calm zones wherever you go
-              </Text>
-            </View>
-            <View style={[
-              styles.toggle,
-              preferences.travelerMode && styles.toggleActive
-            ]}>
-              <View style={[
-                styles.toggleThumb,
-                preferences.travelerMode && styles.toggleThumbActive
-              ]} />
-            </View>
+            <Text style={styles.ctaText}>Begin Your Symbiotic Journey</Text>
           </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
-          <Text style={styles.buttonText}>Begin Your Journey</Text>
-        </TouchableOpacity>
-      </ScrollView>
+        </ScrollView>
+      </Animated.View>
     </LinearGradient>
   );
 };
@@ -168,156 +280,138 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
+  content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingTop: 60,
   },
   header: {
-    alignItems: 'center',
     marginBottom: 40,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontFamily: 'Inter-SemiBold',
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 16,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#ffffff',
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    opacity: 0.8,
     lineHeight: 24,
+    letterSpacing: 0.2,
   },
   section: {
-    marginBottom: 32,
+    marginBottom: 40,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-Medium',
+    fontSize: 20,
+    fontFamily: 'Inter-SemiBold',
     color: '#ffffff',
-    marginBottom: 16,
+    marginBottom: 20,
+    textAlign: 'center',
   },
-  optionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  optionsGrid: {
+    gap: 16,
+  },
+  optionCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(20px)',
+    alignItems: 'center',
   },
-  optionItemActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+  optionCardActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 2,
   },
   optionIcon: {
-    marginRight: 12,
-  },
-  optionText: {
-    flex: 1,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   optionTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Inter-SemiBold',
     color: '#ffffff',
-    marginBottom: 2,
+    marginBottom: 4,
+    textAlign: 'center',
   },
   optionDescription: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#ffffff',
-    opacity: 0.7,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    lineHeight: 20,
   },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioActive: {
-    borderColor: '#4ade80',
-  },
-  radioDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#4ade80',
-  },
-  toggleItem: {
+  connectionVisual: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    marginBottom: 20,
+    gap: 20,
   },
-  toggleItemActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+  userOrb: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    borderWidth: 2,
+    borderColor: '#ef4444',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  toggleIcon: {
-    marginRight: 12,
+  connectionLine: {
+    width: 60,
+    height: 2,
+    backgroundColor: '#7dd3fc',
+    borderRadius: 1,
   },
-  toggleText: {
-    flex: 1,
+  aiOrb: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(125, 211, 252, 0.2)',
+    borderWidth: 2,
+    borderColor: '#7dd3fc',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  toggleTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#ffffff',
-    marginBottom: 2,
-  },
-  toggleDescription: {
+  connectionText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#ffffff',
-    opacity: 0.7,
-  },
-  toggle: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  toggleActive: {
-    backgroundColor: '#4ade80',
-  },
-  toggleThumb: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#ffffff',
-  },
-  toggleThumbActive: {
-    alignSelf: 'flex-end',
-  },
-  finishButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 40,
-    paddingVertical: 16,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    marginTop: 20,
-    marginBottom: 40,
-    alignSelf: 'center',
-  },
-  buttonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#ffffff',
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
+    lineHeight: 20,
+  },
+  ctaButton: {
+    backgroundColor: '#7dd3fc',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginBottom: 40,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  ctaText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#000000',
+    textAlign: 'center',
+    letterSpacing: 0.2,
   },
 });
 

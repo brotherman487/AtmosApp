@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Dimensions, Animated, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Wind, Waves, Sun, Moon, Sparkles } from 'lucide-react-native';
+import { Brain, Cpu, Heart, Sparkles } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -10,12 +10,15 @@ const OnboardingScreen = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [animations] = useState({
     breathe: new Animated.Value(1),
-    rotate: new Animated.Value(0),
-    fade: new Animated.Value(0)
+    fade: new Animated.Value(0),
+    glow: new Animated.Value(0.3),
+    neuralFlow: new Animated.Value(0),
+    aiPulse: new Animated.Value(0),
+    slide: new Animated.Value(50)
   });
 
   useEffect(() => {
-    // Breathing animation
+    // Breathing animation synchronized with AI "breath"
     Animated.loop(
       Animated.sequence([
         Animated.timing(animations.breathe, {
@@ -31,47 +34,74 @@ const OnboardingScreen = () => {
       ])
     ).start();
 
-    // Rotation animation
-    Animated.loop(
-      Animated.timing(animations.rotate, {
-        toValue: 1,
-        duration: 20000,
-        useNativeDriver: true,
-      })
-    ).start();
-
     // Fade in animation
     Animated.timing(animations.fade, {
       toValue: 1,
       duration: 1000,
       useNativeDriver: true,
     }).start();
+
+    // Slide up animation
+    Animated.timing(animations.slide, {
+      toValue: 0,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+
+    // Neural flow animation
+    Animated.loop(
+      Animated.timing(animations.neuralFlow, {
+        toValue: 1,
+        duration: 8000,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    // AI pulse animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animations.aiPulse, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animations.aiPulse, {
+          toValue: 0.3,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   }, []);
 
   const onboardingSteps = [
     {
-      title: "Welcome to Atmos",
-      subtitle: "Your conscious living companion for mindful harmony",
-      icon: <Sparkles size={48} color="#7dd3fc" strokeWidth={1.5} />,
-      color: '#7dd3fc'
+      title: "Your AI Companion",
+      subtitle: "An invisible intelligence that learns to breathe with you",
+      icon: <Brain size={40} color="#7dd3fc" strokeWidth={1.5} />,
+      color: '#7dd3fc',
+      gradient: ['#0f0f23', '#1a1a2e', '#16213e'] as const,
     },
     {
-      title: "Breathe with the World",
-      subtitle: "Sync with air quality, weather, and ambient sounds",
-      icon: <Wind size={48} color="#10b981" strokeWidth={1.5} />,
-      color: '#10b981'
+      title: "Learning Your Rhythms",
+      subtitle: "Watching, sensing, adapting to become your perfect companion",
+      icon: <Cpu size={40} color="#10b981" strokeWidth={1.5} />,
+      color: '#10b981',
+      gradient: ['#1a1a2e', '#16213e', '#0f3460'] as const,
     },
     {
-      title: "Find Your Rhythm",
-      subtitle: "Discover calm zones and sacred spaces for renewal",
-      icon: <Sun size={48} color="#f59e0b" strokeWidth={1.5} />,
-      color: '#f59e0b'
+      title: "Symbiotic Connection",
+      subtitle: "A living extension of your consciousness that grows wiser with every breath",
+      icon: <Heart size={40} color="#a855f7" strokeWidth={1.5} />,
+      color: '#a855f7',
+      gradient: ['#16213e', '#0f3460', '#1a1a2e'] as const,
     },
     {
-      title: "Voice-First Wisdom",
-      subtitle: "Speak your reflections, receive gentle guidance",
-      icon: <Moon size={48} color="#a78bfa" strokeWidth={1.5} />,
-      color: '#a78bfa'
+      title: "Begin Your Journey",
+      subtitle: "Step into a world where technology disappears, leaving only gentle guidance",
+      icon: <Sparkles size={40} color="#f59e0b" strokeWidth={1.5} />,
+      color: '#f59e0b',
+      gradient: ['#0f0f23', '#1a1a2e', '#16213e'] as const,
     }
   ];
 
@@ -85,25 +115,43 @@ const OnboardingScreen = () => {
     }
   };
 
-  const spin = animations.rotate.interpolate({
+  const breatheScale = animations.breathe.interpolate({
+    inputRange: [1, 1.2],
+    outputRange: [1, 1.2]
+  });
+
+  const neuralOpacity = animations.neuralFlow.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.05, 0.15]
+  });
+
+  const neuralRotation = animations.neuralFlow.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg']
   });
 
+  const aiPulseScale = animations.aiPulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.05]
+  });
+
+  const glowOpacity = animations.glow.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.6]
+  });
+
   return (
     <LinearGradient
-      colors={['#0f0f23', '#1a1a2e', '#16213e']}
+      colors={currentStepData.gradient}
       style={styles.container}
     >
+      {/* Subtle Neural Background */}
       <Animated.View 
         style={[
-          styles.backgroundOrb,
+          styles.neuralBackground,
           {
-            transform: [
-              { scale: animations.breathe },
-              { rotate: spin }
-            ],
-            backgroundColor: `${currentStepData.color}10`,
+            opacity: neuralOpacity,
+            transform: [{ rotate: neuralRotation }]
           }
         ]}
       />
@@ -111,55 +159,76 @@ const OnboardingScreen = () => {
       <Animated.View 
         style={[
           styles.content,
-          { opacity: animations.fade }
+          { 
+            opacity: animations.fade,
+            transform: [{ translateY: animations.slide }]
+          }
         ]}
       >
-        <View style={styles.iconContainer}>
-          <Animated.View 
-            style={[
-              styles.iconCircle,
-              {
-                transform: [{ scale: animations.breathe }],
-                backgroundColor: `${currentStepData.color}15`,
-                borderColor: `${currentStepData.color}30`,
-              }
-            ]}
-          >
-            {currentStepData.icon}
-          </Animated.View>
-          <Animated.View
-            style={[
-              styles.iconGlow,
-              {
-                opacity: animations.glow,
-                shadowColor: currentStepData.color,
-              }
-            ]}
-          />
-        </View>
-
-        <Text style={styles.title}>{currentStepData.title}</Text>
-        <Text style={styles.subtitle}>{currentStepData.subtitle}</Text>
-
-        <View style={styles.indicators}>
+        {/* Progress Indicator */}
+        <View style={styles.progressContainer}>
           {onboardingSteps.map((_, index) => (
             <View
               key={index}
               style={[
-                styles.indicator,
-                index === currentStep && [styles.activeIndicator, { backgroundColor: currentStepData.color }]
+                styles.progressDot,
+                index === currentStep && [styles.activeProgressDot, { backgroundColor: currentStepData.color }]
               ]}
             />
           ))}
         </View>
 
+        {/* Main Content Card */}
+        <View style={styles.mainCard}>
+          {/* Icon Container */}
+          <View style={styles.iconContainer}>
+            <Animated.View 
+              style={[
+                styles.iconOrb,
+                {
+                  transform: [
+                    { scale: breatheScale },
+                    { scale: aiPulseScale }
+                  ],
+                  backgroundColor: `${currentStepData.color}15`,
+                  borderColor: `${currentStepData.color}30`,
+                }
+              ]}
+            >
+              {currentStepData.icon}
+            </Animated.View>
+            
+            {/* Subtle Glow Effect */}
+            <Animated.View
+              style={[
+                styles.iconGlow,
+                {
+                  opacity: glowOpacity,
+                  backgroundColor: currentStepData.color,
+                }
+              ]}
+            />
+          </View>
+
+          {/* Text Content */}
+          <Text style={styles.title}>{currentStepData.title}</Text>
+          <Text style={styles.subtitle}>{currentStepData.subtitle}</Text>
+        </View>
+
+        {/* CTA Button */}
         <TouchableOpacity 
-          style={[styles.nextButton, { borderColor: `${currentStepData.color}40` }]} 
+          style={[
+            styles.ctaButton, 
+            { 
+              backgroundColor: currentStepData.color,
+              shadowColor: currentStepData.color,
+            }
+          ]} 
           onPress={handleNext}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>
-            {currentStep === onboardingSteps.length - 1 ? 'Get Started' : 'Continue'}
+          <Text style={styles.ctaText}>
+            {currentStep === onboardingSteps.length - 1 ? 'Begin Journey' : 'Continue'}
           </Text>
         </TouchableOpacity>
       </Animated.View>
@@ -173,45 +242,73 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backgroundOrb: {
+  neuralBackground: {
     position: 'absolute',
-    width: width * 2,
-    height: width * 2,
-    borderRadius: width,
-    top: -width * 0.8,
-    left: -width * 0.5,
+    width: width * 1.5,
+    height: width * 1.5,
+    borderRadius: width * 0.75,
+    top: -width * 0.4,
+    left: -width * 0.25,
+    borderWidth: 0.5,
+    borderColor: 'rgba(125, 211, 252, 0.1)',
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
+    width: '100%',
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    marginBottom: 60,
+    gap: 8,
+  },
+  progressDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  activeProgressDot: {
+    width: 24,
+  },
+  mainCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 24,
+    padding: 40,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(20px)',
+    marginBottom: 60,
+    width: '100%',
+    maxWidth: 320,
   },
   iconContainer: {
-    marginBottom: 50,
+    marginBottom: 32,
     position: 'relative',
   },
-  iconCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+  iconOrb: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1,
   },
   iconGlow: {
     position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 25,
-    elevation: 15,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    opacity: 0.3,
+    top: -10,
+    left: -10,
   },
   title: {
-    fontSize: 28,
-    fontFamily: 'Inter-Light',
+    fontSize: 32,
+    fontFamily: 'Inter-SemiBold',
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 16,
@@ -220,39 +317,29 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#ffffff',
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    opacity: 0.7,
     lineHeight: 24,
-    marginBottom: 50,
     letterSpacing: 0.2,
   },
-  indicators: {
-    flexDirection: 'row',
-    marginBottom: 50,
+  ctaButton: {
+    paddingHorizontal: 40,
+    paddingVertical: 16,
+    borderRadius: 16,
+    width: '100%',
+    maxWidth: 280,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  indicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    marginHorizontal: 3,
-  },
-  activeIndicator: {
-    width: 20,
-    borderRadius: 3,
-  },
-  nextButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 25,
-    borderWidth: 1,
-  },
-  buttonText: {
-    fontSize: 15,
-    fontFamily: 'Inter-Medium',
-    color: '#ffffff',
+  ctaText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#000000',
     textAlign: 'center',
     letterSpacing: 0.2,
   },

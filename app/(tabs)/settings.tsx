@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Animated, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -15,11 +15,14 @@ import {
   Heart,
   Settings as SettingsIcon,
   Sparkles,
-  Volume2
+  Volume2,
+  BarChart3,
+  Activity,
+  Users
 } from 'lucide-react-native';
 
 const SettingsScreen = () => {
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<Record<string, boolean | string>>({
     voiceNudges: true,
     hapticFeedback: true,
     travelerMode: false,
@@ -27,8 +30,43 @@ const SettingsScreen = () => {
     autoSync: true,
     privacyMode: false,
     soundscapes: true,
-    emergencyShield: false
+    emergencyShield: false,
+    // Privacy & Security
+    cameraAccess: false,
+    locationSharing: false,
+    biometricLock: true,
+    emergencyContacts: true,
+    sosMode: false,
+    dataEncryption: true,
+    // Data & Analytics
+    dataSharing: false,
+    analyticsOptIn: true,
+    dataRetention: '90days',
+    ovrCalculation: 'standard',
+    // Wearable Integration
+    deviceAutoSync: true,
+    sensorCalibration: true,
+    batteryOptimization: true,
+    syncFrequency: 'realtime',
+    // Notifications & Alerts
+    pushNotifications: true,
+    quietHours: true,
+    priorityAlerts: true,
+    insightFrequency: 'daily',
+    // Social Features
+    friendVisibility: true,
+    leaderboardParticipation: true,
+    socialSharing: false,
+    communityFeatures: true,
+    // Advanced Personalization
+    aiLearning: true,
+    customRhythms: false,
+    personalInsights: true,
+    goalReminders: true
   });
+
+  type SettingsKey = keyof typeof settings;
+  type SettingValue = boolean | string;
 
   const [animations] = useState({
     glow: new Animated.Value(0.3),
@@ -36,66 +74,57 @@ const SettingsScreen = () => {
   });
 
   useEffect(() => {
-    // Gentle glow animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(animations.glow, {
-          toValue: 0.7,
-          duration: 3000,
-          useNativeDriver: false,
-        }),
-        Animated.timing(animations.glow, {
-          toValue: 0.3,
-          duration: 3000,
-          useNativeDriver: false,
-        }),
-      ])
-    ).start();
-
-    // Pulse animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(animations.pulse, {
-          toValue: 1.02,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(animations.pulse, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
+    // Animation removed for static card
   }, []);
 
-  const toggleSetting = (key: string) => {
+  const toggleSetting = (key: SettingsKey) => {
     setSettings(prev => ({
       ...prev,
-      [key]: !prev[key]
+      [key]: typeof prev[key] === 'boolean' ? !(prev[key] as boolean) : prev[key]
     }));
   };
 
-  const settingsSections = [
+  const updateSetting = (key: SettingsKey, value: SettingValue) => {
+    setSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  // Define the item type properly
+  type SettingItem = {
+    key?: SettingsKey;
+    title: string;
+    description: string;
+    type: 'toggle' | 'navigation' | 'select';
+    options?: { label: string; value: string }[];
+  };
+
+  const settingsSections: Array<{
+    title: string;
+    icon: React.ReactNode;
+    color: string;
+    items: SettingItem[];
+  }> = [
     {
       title: 'Voice & Interaction',
       icon: <Mic size={18} color="#7dd3fc" strokeWidth={1.5} />,
       color: '#7dd3fc',
       items: [
         {
-          key: 'voiceNudges',
+          key: 'voiceNudges' as SettingsKey,
           title: 'Voice-First Guidance',
           description: 'Receive spoken wisdom and gentle nudges',
           type: 'toggle'
         },
         {
-          key: 'soundscapes',
+          key: 'soundscapes' as SettingsKey,
           title: 'Ambient Soundscapes',
           description: 'Environment-based background sounds',
           type: 'toggle'
         },
         {
-          key: 'hapticFeedback',
+          key: 'hapticFeedback' as SettingsKey,
           title: 'Gentle Vibrations',
           description: 'Subtle haptic feedback for interactions',
           type: 'toggle'
@@ -133,9 +162,45 @@ const SettingsScreen = () => {
           type: 'toggle'
         },
         {
+          key: 'cameraAccess',
+          title: 'Camera Access',
+          description: 'Allow Atmos to use camera for environment detection',
+          type: 'toggle'
+        },
+        {
+          key: 'locationSharing',
+          title: 'Location Sharing',
+          description: 'Share location for environmental insights',
+          type: 'toggle'
+        },
+        {
+          key: 'biometricLock',
+          title: 'Biometric Lock',
+          description: 'Use fingerprint or face ID to unlock',
+          type: 'toggle'
+        },
+        {
+          key: 'dataEncryption',
+          title: 'Data Encryption',
+          description: 'Encrypt all personal data',
+          type: 'toggle'
+        },
+        {
           key: 'emergencyShield',
           title: 'Emergency Shield',
           description: 'Voice-activated emergency mode',
+          type: 'toggle'
+        },
+        {
+          key: 'emergencyContacts',
+          title: 'Emergency Contacts',
+          description: 'Manage emergency contact list',
+          type: 'navigation'
+        },
+        {
+          key: 'sosMode',
+          title: 'SOS Mode',
+          description: 'Quick emergency alert system',
           type: 'toggle'
         }
       ]
@@ -160,6 +225,184 @@ const SettingsScreen = () => {
           title: 'Voice Sensitivity',
           description: 'Adjust voice recognition settings',
           type: 'navigation'
+        }
+      ]
+    },
+    {
+      title: 'Data & Analytics',
+      icon: <BarChart3 size={18} color="#ef4444" strokeWidth={1.5} />,
+      color: '#ef4444',
+      items: [
+        {
+          key: 'dataSharing',
+          title: 'Data Sharing',
+          description: 'Share anonymized data for research',
+          type: 'toggle'
+        },
+        {
+          key: 'analyticsOptIn',
+          title: 'Analytics',
+          description: 'Help improve Atmos with usage data',
+          type: 'toggle'
+        },
+        {
+          key: 'dataRetention',
+          title: 'Data Retention',
+          description: 'How long to keep your data',
+          type: 'select',
+          options: [
+            { label: '30 days', value: '30days' },
+            { label: '90 days', value: '90days' },
+            { label: '1 year', value: '1year' },
+            { label: 'Forever', value: 'forever' }
+          ]
+        },
+        {
+          key: 'ovrCalculation',
+          title: 'OVR Algorithm',
+          description: 'Choose your calculation method',
+          type: 'select',
+          options: [
+            { label: 'Standard', value: 'standard' },
+            { label: 'Advanced', value: 'advanced' },
+            { label: 'Custom', value: 'custom' }
+          ]
+        }
+      ]
+    },
+    {
+      title: 'Wearable Integration',
+      icon: <Activity size={18} color="#8b5cf6" strokeWidth={1.5} />,
+      color: '#8b5cf6',
+      items: [
+        {
+          key: 'deviceAutoSync',
+          title: 'Auto Sync',
+          description: 'Automatically sync with your wearable',
+          type: 'toggle'
+        },
+        {
+          key: 'sensorCalibration',
+          title: 'Sensor Calibration',
+          description: 'Calibrate sensors for accuracy',
+          type: 'toggle'
+        },
+        {
+          key: 'batteryOptimization',
+          title: 'Battery Optimization',
+          description: 'Optimize for longer battery life',
+          type: 'toggle'
+        },
+        {
+          key: 'syncFrequency',
+          title: 'Sync Frequency',
+          description: 'How often to sync data',
+          type: 'select',
+          options: [
+            { label: 'Real-time', value: 'realtime' },
+            { label: 'Every 5 minutes', value: '5min' },
+            { label: 'Every 15 minutes', value: '15min' },
+            { label: 'Manual only', value: 'manual' }
+          ]
+        }
+      ]
+    },
+    {
+      title: 'Notifications & Alerts',
+      icon: <Bell size={18} color="#06b6d4" strokeWidth={1.5} />,
+      color: '#06b6d4',
+      items: [
+        {
+          key: 'pushNotifications',
+          title: 'Push Notifications',
+          description: 'Receive notifications on your device',
+          type: 'toggle'
+        },
+        {
+          key: 'quietHours',
+          title: 'Quiet Hours',
+          description: 'Silence notifications during sleep',
+          type: 'toggle'
+        },
+        {
+          key: 'priorityAlerts',
+          title: 'Priority Alerts',
+          description: 'Important alerts only',
+          type: 'toggle'
+        },
+        {
+          key: 'insightFrequency',
+          title: 'Insight Frequency',
+          description: 'How often to receive insights',
+          type: 'select',
+          options: [
+            { label: 'Real-time', value: 'realtime' },
+            { label: 'Daily', value: 'daily' },
+            { label: 'Weekly', value: 'weekly' },
+            { label: 'Monthly', value: 'monthly' }
+          ]
+        }
+      ]
+    },
+    {
+      title: 'Social Features',
+      icon: <Users size={18} color="#10b981" strokeWidth={1.5} />,
+      color: '#10b981',
+      items: [
+        {
+          key: 'friendVisibility',
+          title: 'Friend Visibility',
+          description: 'Allow friends to see your status',
+          type: 'toggle'
+        },
+        {
+          key: 'leaderboardParticipation',
+          title: 'Leaderboard',
+          description: 'Participate in community rankings',
+          type: 'toggle'
+        },
+        {
+          key: 'socialSharing',
+          title: 'Social Sharing',
+          description: 'Share achievements on social media',
+          type: 'toggle'
+        },
+        {
+          key: 'communityFeatures',
+          title: 'Community',
+          description: 'Access community features',
+          type: 'toggle'
+        }
+      ]
+    },
+    {
+      title: 'Advanced Personalization',
+      icon: <Zap size={18} color="#f97316" strokeWidth={1.5} />,
+      color: '#f97316',
+      items: [
+        {
+          key: 'aiLearning',
+          title: 'AI Learning',
+          description: 'Let AI learn your patterns',
+          type: 'toggle'
+        },
+        {
+          key: 'customRhythms',
+          title: 'Custom Rhythms',
+          description: 'Create personalized rhythms',
+          type: 'toggle'
+        },
+        {
+          key: 'personalInsights',
+          title: 'Personal Insights',
+          description: 'Receive personalized insights',
+          type: 'toggle'
+        },
+        {
+          key: 'goalReminders',
+          title: 'Goal Reminders',
+          description: 'Get reminded of your goals',
+          type: 'toggle'
         }
       ]
     }
@@ -203,30 +446,19 @@ const SettingsScreen = () => {
           contentContainerStyle={styles.scrollContent}
         >
           {/* Profile Card */}
-          <Animated.View 
-            style={[
-              styles.profileCard,
-              { transform: [{ scale: animations.pulse }] }
-            ]}
+          <View 
+            style={styles.profileCardModern}
           >
-            <Animated.View
-              style={[
-                styles.profileGlow,
-                {
-                  opacity: animations.glow,
-                  shadowColor: '#7dd3fc',
-                }
-              ]}
-            />
-            <View style={styles.profileAvatar}>
-              <User size={32} color="#7dd3fc" strokeWidth={1.5} />
+            <View style={styles.profileAvatarModern}>
+              <User size={40} color="#7dd3fc" strokeWidth={2} />
             </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>Mindful Soul</Text>
-              <Text style={styles.profileStatus}>In perfect rhythm</Text>
-              <Text style={styles.profileJoined}>Joined 47 days ago</Text>
+            <View style={styles.profileInfoModern}>
+              <Text style={styles.profileNameModern}>Mindful Soul</Text>
+              <Text style={styles.profileLocationModern}>Miami, FL</Text>
+              <Text style={styles.profileStatusModern}>In perfect rhythm</Text>
+              <Text style={styles.profileJoinedModern}>Joined 47 days ago</Text>
             </View>
-          </Animated.View>
+          </View>
 
           {/* Settings Sections */}
           {settingsSections.map((section, sectionIndex) => (
@@ -249,10 +481,10 @@ const SettingsScreen = () => {
                   
                   {item.type === 'toggle' && item.key ? (
                     <Switch
-                      value={settings[item.key]}
-                      onValueChange={() => toggleSetting(item.key)}
+                      value={settings[item.key] as boolean}
+                      onValueChange={() => toggleSetting(item.key!)}
                       trackColor={{ false: 'rgba(255, 255, 255, 0.15)', true: section.color }}
-                      thumbColor={settings[item.key] ? '#ffffff' : 'rgba(255, 255, 255, 0.8)'}
+                      thumbColor={(settings[item.key] as boolean) ? '#ffffff' : 'rgba(255, 255, 255, 0.8)'}
                       style={styles.switch}
                     />
                   ) : (
@@ -321,7 +553,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: Platform.OS === 'ios' ? 24 : 20,
     marginBottom: 30,
   },
   title: {
@@ -361,9 +593,7 @@ const styles = StyleSheet.create({
     width: '120%',
     height: '120%',
     borderRadius: 24,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 20,
+    boxShadow: '0px 0px 20px rgba(0, 0, 0, 1)',
     elevation: 10,
   },
   profileAvatar: {
@@ -386,6 +616,13 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginBottom: 4,
     letterSpacing: -0.3,
+  },
+  profileLocation: {
+    fontSize: 13,
+    fontFamily: 'Inter-Regular',
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 2,
+    letterSpacing: 0.1,
   },
   profileStatus: {
     fontSize: 13,
@@ -518,6 +755,55 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     marginLeft: 8,
     lineHeight: 16,
+    letterSpacing: 0.1,
+  },
+  profileCardModern: {
+    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    borderRadius: 32,
+    padding: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 40,
+    borderWidth: 1,
+    borderColor: 'rgba(125, 211, 252, 0.2)',
+    boxShadow: '0px 0px 24px rgba(125, 211, 252, 0.2)',
+  },
+  profileAvatarModern: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(125, 211, 252, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 20,
+    borderWidth: 2,
+    borderColor: 'rgba(125, 211, 252, 0.3)',
+  },
+  profileInfoModern: {
+    flex: 1,
+  },
+  profileNameModern: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
+    letterSpacing: -0.5,
+  },
+  profileLocationModern: {
+    fontSize: 15,
+    color: '#7dd3fc',
+    marginBottom: 2,
+    letterSpacing: 0.1,
+  },
+  profileStatusModern: {
+    fontSize: 14,
+    color: '#10b981',
+    marginBottom: 2,
+    letterSpacing: 0.1,
+  },
+  profileJoinedModern: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
     letterSpacing: 0.1,
   },
 });
